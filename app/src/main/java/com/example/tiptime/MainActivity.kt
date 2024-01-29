@@ -79,10 +79,11 @@ fun TipTimeLayout() {
     var amountInput by remember { mutableStateOf("") }
     var tipInput by remember { mutableStateOf("") }
     var roundUp by remember { mutableStateOf(false) }
+    var roundDown by remember { mutableStateOf(false) }
 
     val amount = amountInput.toDoubleOrNull() ?: 0.0
     val tipPercent = tipInput.toDoubleOrNull() ?: 0.0
-    val tip = calculateTip(amount, tipPercent, roundUp)
+    val tip = calculateTip(amount, tipPercent, roundUp, roundDown)
 
     Column(
         modifier = Modifier
@@ -121,9 +122,17 @@ fun TipTimeLayout() {
             onValueChanged = { tipInput = it },
             modifier = Modifier.padding(bottom = 32.dp).fillMaxWidth(),
         )
-        RoundTheTipRow(
+        RoundOptionsRow(
             roundUp = roundUp,
-            onRoundUpChanged = { roundUp = it },
+            onRoundUpChanged = {
+                roundDown = false
+                roundUp = it
+                               },
+            roundDown = roundDown,
+            onRoundDownChanged = {
+                roundUp = false
+                roundDown = it
+            },
             modifier = Modifier.padding(bottom = 32.dp)
         )
         Text(
@@ -155,37 +164,66 @@ fun EditNumberField(
 }
 
 @Composable
-fun RoundTheTipRow(
+fun RoundOptionsRow(
     roundUp: Boolean,
     onRoundUpChanged: (Boolean) -> Unit,
+    roundDown: Boolean,
+    onRoundDownChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        RoundTheTipRow(
+            text = R.string.round_up_tip,
+            checked = roundUp,
+            onCheckedChange = onRoundUpChanged
+        )
+        RoundTheTipRow(
+            text = R.string.round_down_tip,
+            checked = roundDown,
+            onCheckedChange = onRoundDownChanged
+        )
+    }
+}
+
+@Composable
+fun RoundTheTipRow(
+    @StringRes text: Int,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .size(48.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = stringResource(R.string.round_up_tip))
+        Text(text = stringResource(text))
+        Spacer(Modifier.weight(1f))
         Switch(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentWidth(Alignment.End),
-            checked = roundUp,
-            onCheckedChange = onRoundUpChanged
+            checked = checked,
+            onCheckedChange = onCheckedChange
         )
     }
 }
+
 
 /**
  * Calculates the tip based on the user input and format the tip amount
  * according to the local currency.
  * Example would be "$10.00".
  */
-private fun calculateTip(amount: Double, tipPercent: Double = 15.0, roundUp: Boolean): String {
+/**
+ * Calculates the tip based on the user input and formats the tip amount
+ * according to the local currency.
+ * Example would be "$10.00".
+ */
+private fun calculateTip(amount: Double, tipPercent: Double = 15.0, roundUp: Boolean, roundDown: Boolean): String {
     var tip = tipPercent / 100 * amount
     if (roundUp) {
         tip = kotlin.math.ceil(tip)
+    } else if (roundDown) {
+        tip = kotlin.math.floor(tip)
     }
     return NumberFormat.getCurrencyInstance().format(tip)
 }
